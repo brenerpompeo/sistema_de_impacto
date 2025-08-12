@@ -1,3 +1,55 @@
+// =================================================================
+// CONTRATOS DE DADOS (TYPES)
+// =================================================================
+
+// Interface para atributos de uma imagem no Strapi
+export interface StrapiImageAttributes {
+  url: string;
+  alternativeText?: string;
+  width: number;
+  height: number;
+}
+
+// Interface para um objeto de imagem do Strapi
+export interface StrapiImage {
+  data: {
+    id: number;
+    attributes: StrapiImageAttributes;
+  } | null;
+}
+
+// Interface para os atributos de um eBook
+export interface EbookAttributes {
+  slug: string;
+  title: string;
+  description: string;
+  price: number;
+  checkoutUrl: string;
+  cover: StrapiImage;
+}
+
+// Interface para um objeto eBook vindo da API Strapi
+export interface Ebook {
+  id: number;
+  attributes: EbookAttributes;
+}
+
+// Interface para os atributos de um Post
+export interface PostAttributes {
+  slug: string;
+  title: string;
+  date: string; // ISO date string
+  excerpt: string;
+  content: string; // Markdown content
+}
+
+// Interface para um objeto Post vindo da API Strapi
+export interface Post {
+  id: number;
+  attributes: PostAttributes;
+}
+
+
 /**
  * Helper functions to fetch data from a Strapi backend.  These functions
  * assume that the Strapi REST API uses the default `/api` prefix.  To use
@@ -7,45 +59,55 @@
 
 const API_URL = process.env.NEXT_PUBLIC_STRAPI_URL;
 
-async function fetchAPI(path: string) {
+async function fetchAPI(path: string): Promise<any> {
   if (!API_URL) {
-    throw new Error(
-      'NEXT_PUBLIC_STRAPI_URL não foi definido. Defina-o em `.env.local` para habilitar a integração com o Strapi.'
-    );
+    console.error('NEXT_PUBLIC_STRAPI_URL not set. Strapi integration is disabled.');
+    // Retornar um estado vazio ou de erro controlado
+    return { data: null, error: 'Strapi URL not configured.' };
   }
-  const url = `${API_URL}${path}`;
-  const res = await fetch(url, {
-    // tell Next.js to revalidate this data periodically when using SSG
-    next: { revalidate: 60 },
-  });
-  if (!res.ok) {
-    throw new Error(`Falha ao buscar dados do Strapi: ${res.statusText}`);
+
+  const requestUrl = `${API_URL}${path}`;
+
+  try {
+    const response = await fetch(requestUrl, {
+      next: { revalidate: 60 }, // Revalidação a cada 60s
+    });
+
+    if (!response.ok) {
+      console.error(`Error fetching ${requestUrl}: ${response.statusText}`);
+      return { data: null, error: `Failed to fetch: ${response.status}` };
+    }
+
+    const data = await response.json();
+    return data; // No v4, a propriedade `data` está no corpo da resposta
+  } catch (error) {
+    console.error(`Fetch API error for ${requestUrl}:`, error);
+    return { data: null, error: 'Network or fetch error' };
   }
-  const json = await res.json();
-  // No Strapi v4 os dados retornados ficam dentro da propriedade `data`
-  return json.data;
 }
 
-export async function getStrapiEbooks() {
-  return await fetchAPI('/ebooks?populate=*');
+
+export async function getStrapiEbooks(): Promise<Ebook[]> {
+  const response = await fetchAPI('/ebooks?populate=*');
+  return response.data || [];
 }
 
-export async function getStrapiEbook(slug: string) {
-  // Filtra por slug e popula todas as relações
-  const data = await fetchAPI(
+export async function getStrapiEbook(slug: string): Promise<Ebook | null> {
+  const response = await fetchAPI(
     `/ebooks?filters[slug][$eq]=${encodeURIComponent(slug)}&populate=*`
   );
-  // data é um array de entradas; retornamos a primeira
-  return Array.isArray(data) ? data[0] : null;
+  // A resposta de filtro é um array, pegamos o primeiro item
+  return response.data && response.data.length > 0 ? response.data[0] : null;
 }
 
-export async function getStrapiPosts() {
-  return await fetchAPI('/posts?populate=*');
+export async function getStrapiPosts(): Promise<Post[]> {
+  const response = await fetchAPI('/posts?populate=*');
+  return response.data || [];
 }
 
-export async function getStrapiPost(slug: string) {
-  const data = await fetchAPI(
+export async function getStrapiPost(slug: string): Promise<Post | null> {
+  const response = await fetchAPI(
     `/posts?filters[slug][$eq]=${encodeURIComponent(slug)}&populate=*`
   );
-  return Array.isArray(data) ? data[0] : null;
+  return response.data && response.data.length > 0 ? response.data[0] : null;
 }

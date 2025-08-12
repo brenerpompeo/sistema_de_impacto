@@ -1,0 +1,49 @@
+# Dependencies
+/node_modules
+*/node_modules
+
+# Build artifacts
+/dist
+/build
+/.cache
+/out
+/.next
+
+# Vercel
+.vercel
+
+# Strapi specific
+/cms/build
+/cms/.cache
+/cms/database/tmp
+
+# Next.js specific
+/impacto-ecosystem-cms-nextjs/.next
+/impacto-ecosystem-cms-nextjs/out
+
+# Env files - IMPORTANT
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+*.env
+*.env.local
+*/.env
+*/.env.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
